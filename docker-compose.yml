@@ -61,7 +61,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - MONGODB_URI=mongodb://mongodb:27017/auth
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/auth?authSource=admin
       - JWT_SECRET=efrei_super_pass
     depends_on:
       - mongodb
@@ -84,7 +84,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/ecommerce?authSource=admin
       - JWT_SECRET=efrei_super_pass
     depends_on:
       - mongodb
@@ -107,7 +107,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3002
-      - MONGODB_URI=mongodb://mongodb:27017/orders
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/orders?authSource=admin
       - JWT_SECRET=efrei_super_pass
       - VITE_PRODUCT_SERVICE_URL=http://product-service:3000
     depends_on:

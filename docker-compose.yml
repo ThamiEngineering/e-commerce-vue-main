@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Service MongoDB
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: ecommerce
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Frontend Vue
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: frontend
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000
+      - VITE_AUTH_SERVICE_URL=http://auth-service:3001
+      - VITE_ORDER_SERVICE_URL=http://order-service:3002
+    depends_on:
+      - product-service
+      - auth-service
+      - order-service
+    networks:
+      - app-network
+    command: npm run dev
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      target: deps
+    container_name: auth-service
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/auth
+      - JWT_SECRET=efrei_super_pass
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+    command: npm run dev
+
+  # Product Service
+  product-service:
+    build:
+      context: ./services/product-service
+      target: deps
+    container_name: product-service
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./services/product-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+      - JWT_SECRET=efrei_super_pass
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+    command: npm run dev
+
+  # Order Service
+  order-service:
+    build:
+      context: ./services/order-service
+      target: deps
+    container_name: order-service
+    restart: always
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./services/order-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/orders
+      - JWT_SECRET=efrei_super_pass
+      - VITE_PRODUCT_SERVICE_URL=http://product-service:3000
+    depends_on:
+      - mongodb
+      - product-service
+    networks:
+      - app-network
+    command: npm run dev
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

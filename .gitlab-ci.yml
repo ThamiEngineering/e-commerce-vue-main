@@ -1,1 +1,173 @@
+stages:
+  - test
+  - build
+  - security
+  - deploy
 
+variables:
+  REGISTRY_URL: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  JWT_SECRET: $JWT_SECRET
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Test stage
+test-frontend:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd frontend
+    - npm install
+    - npm run test:unit
+  artifacts:
+    paths:
+      - frontend/test-results/
+    reports:
+      junit: frontend/test-results/junit.xml
+  only:
+    - develop
+    - main
+
+test-auth-service:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd services/auth-service
+    - npm install
+    - npm test
+  artifacts:
+    paths:
+      - services/auth-service/coverage/
+  only:
+    - develop
+    - main
+
+test-product-service:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd services/product-service
+    - npm install
+    - npm test
+  artifacts:
+    paths:
+      - services/product-service/coverage/
+  only:
+    - develop
+    - main
+
+test-order-service:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd services/order-service
+    - npm install
+    - npm test
+  artifacts:
+    paths:
+      - services/order-service/coverage/
+  only:
+    - develop
+    - main
+
+# Build stage
+build-frontend:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY_URL/frontend:$IMAGE_TAG -f frontend/Dockerfile ./frontend
+    - docker push $REGISTRY_URL/frontend:$IMAGE_TAG
+  only:
+    - develop
+    - main
+
+build-auth-service:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY_URL/auth-service:$IMAGE_TAG -f services/auth-service/Dockerfile ./services/auth-service
+    - docker push $REGISTRY_URL/auth-service:$IMAGE_TAG
+  only:
+    - develop
+    - main
+
+build-product-service:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY_URL/product-service:$IMAGE_TAG -f services/product-service/Dockerfile ./services/product-service
+    - docker push $REGISTRY_URL/product-service:$IMAGE_TAG
+  only:
+    - develop
+    - main
+
+build-order-service:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY_URL/order-service:$IMAGE_TAG -f services/order-service/Dockerfile ./services/order-service
+    - docker push $REGISTRY_URL/order-service:$IMAGE_TAG
+  only:
+    - develop
+    - main
+
+# Security scanning stage
+security-scan:
+  stage: security
+  image: 
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --no-progress $REGISTRY_URL/frontend:$IMAGE_TAG
+    - trivy image --no-progress $REGISTRY_URL/auth-service:$IMAGE_TAG
+    - trivy image --no-progress $REGISTRY_URL/product-service:$IMAGE_TAG
+    - trivy image --no-progress $REGISTRY_URL/order-service:$IMAGE_TAG
+  only:
+    - develop
+    - main
+
+# Deploy stage
+deploy-dev:
+  stage: deploy
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "Deploying to development environment..."
+    - apk add --no-cache docker-compose
+    - REGISTRY_URL=$REGISTRY_URL IMAGE_TAG=$IMAGE_TAG JWT_SECRET=$JWT_SECRET docker-compose -f docker-compose.yml up -d
+  environment:
+    name: development
+  only:
+    - develop
+
+deploy-prod:
+  stage: deploy
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "Deploying to production environment..."
+    - apk add --no-cache curl
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - REGISTRY_URL=$REGISTRY_URL IMAGE_TAG=$IMAGE_TAG JWT_SECRET=$JWT_SECRET docker stack deploy -c docker-compose.prod.yml e-commerce
+  environment:
+    name: production
+  only:
+    - main
+  when: manual

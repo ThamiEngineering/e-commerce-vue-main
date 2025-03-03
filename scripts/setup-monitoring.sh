@@ -17,7 +17,11 @@ mkdir -p monitoring/grafana/provisioning/dashboards
 mkdir -p monitoring/grafana/dashboards
 
 echo -e "${YELLOW}Copie des fichiers de configuration...${NC}"
-cp prometheus.yml monitoring/
+if [ ! -f monitoring/prometheus.yml ]; then
+  cp ../monitoring/prometheus.yml monitoring/prometheus.yml
+else
+  echo "Le fichier prometheus.yml existe déjà."
+fi
 touch monitoring/grafana/provisioning/datasources/datasource.yml
 touch monitoring/grafana/provisioning/dashboards/dashboard.yml
 

@@ -33,7 +33,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: runner
     ports:
       - "80:80"
     environment:
@@ -71,11 +70,10 @@ services:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
-      target: runner
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - MONGODB_URI=mongodb://mongodb:27017/auth
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/auth?authSource=admin
       - JWT_SECRET=${JWT_SECRET:-efrei_super_pass}
     networks:
       - app-network
@@ -108,11 +106,10 @@ services:
     build:
       context: ./services/product-service
       dockerfile: Dockerfile
-      target: runner
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/ecommerce?authSource=admin
       - JWT_SECRET=${JWT_SECRET:-efrei_super_pass}
     networks:
       - app-network
@@ -145,11 +142,10 @@ services:
     build:
       context: ./services/order-service
       dockerfile: Dockerfile
-      target: runner
     environment:
       - NODE_ENV=production
       - PORT=3002
-      - MONGODB_URI=mongodb://mongodb:27017/orders
+      - MONGODB_URI=mongodb://root:example@mongodb:27017/orders?authSource=admin
       - JWT_SECRET=${JWT_SECRET:-efrei_super_pass}
       - VITE_PRODUCT_SERVICE_URL=http://product-service:3000
     networks:

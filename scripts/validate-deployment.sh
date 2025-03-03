@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-BASE_URL=${1:-http://localhost}
+BASE_URL=${1:-http://localhost}/
 
 echo -e "${BLUE}== Validation du déploiement de l'application ==${NC}"
 echo -e "${YELLOW}URL de base: ${BASE_URL}${NC}"
@@ -25,10 +25,10 @@ test_endpoint() {
 
   echo -e "${YELLOW}Test du service $service - $method $endpoint${NC}"
 
-  local curl_cmd="curl -s -o /dev/null -w \"%{http_code}\" -X $method $BASE_URL$endpoint"
+  local curl_cmd="curl -s -o /dev/null -w "%{http_code}" -X $method $BASE_URL$endpoint"
 
   if [ -n "$payload" ]; then
-    curl_cmd="$curl_cmd -H \"Content-Type: application/json\" -d '$payload'"
+    curl_cmd="$curl_cmd -H "Content-Type: application/json" -d '$payload'"
   fi
 
   local status=$(eval $curl_cmd)
@@ -70,9 +70,9 @@ USER_PASSWORD="password123"
 
 REGISTER_RESPONSE=$(curl -s -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"email\": \"$USER_EMAIL\", \"password\": \"$USER_PASSWORD\"}")
+  -d "{"email": "$USER_EMAIL", "password": "$USER_PASSWORD"}")
 
-if [[ $REGISTER_RESPONSE == *"token"* ]]; then
+if [[ $REGISTER_RESPONSE == "token" ]]; then
   echo -e "${GREEN}✓ Inscription réussie${NC}"
   ((passed_tests++))
 else
@@ -80,14 +80,14 @@ else
 fi
 ((total_tests++))
 
-TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]*' | sed 's/"token":"//')
+TOKEN=$(echo $REGISTER_RESPONSE | grep -o '"token":"[^"]' | sed 's/"token":"//')
 
 if [ -n "$TOKEN" ]; then
   echo -e "${GREEN}✓ Token JWT récupéré${NC}"
 
   PROFILE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$BASE_URL/api/auth/profile" \
     -H "Authorization: Bearer $TOKEN")
-  
+
   if [ "$PROFILE_STATUS" -eq 200 ]; then
     echo -e "${GREEN}✓ Profil utilisateur accessible${NC}"
     ((passed_tests++))
@@ -96,13 +96,20 @@ if [ -n "$TOKEN" ]; then
   fi
   ((total_tests++))
 
-  ORDER_PAYLOAD="{\"products\":[{\"productId\":\"1\",\"quantity\":1}],\"shippingAddress\":{\"street\":\"123 Test St\",\"city\":\"Test City\",\"postalCode\":\"12345\"}}"
-  
+PRODUCT_RESPONSE=$(curl -s "$BASE_URL/api/products")
+PRODUCT_ID=$(echo $PRODUCT_RESPONSE | grep -o '"_id":"[^"]' | head -1 | sed 's/"_id":"//')
+
+if [ -z "$PRODUCT_ID" ]; then
+  echo -e "${RED}✗ Impossible de récupérer un ID de produit valide${NC}"
+fi
+
+ORDER_PAYLOAD="{"products":[{"productId":"$PRODUCT_ID","quantity":1}],"shippingAddress":{"street":"123 Test St","city":"Test City","postalCode":"12345"}}"
+
   ORDER_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/orders" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "$ORDER_PAYLOAD")
-  
+
   if [ "$ORDER_STATUS" -eq 201 ] || [ "$ORDER_STATUS" -eq 200 ]; then
     echo -e "${GREEN}✓ Création de commande réussie${NC}"
     ((passed_tests++))

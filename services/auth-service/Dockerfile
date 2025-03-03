@@ -3,7 +3,8 @@ FROM node:18-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN [ -f package-lock.json ] || npm install --package-lock-only
+RUN npm ci
 
 FROM node:18-alpine AS builder
 

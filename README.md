@@ -73,12 +73,12 @@ Cette application utilise une architecture microservices déployée avec Docker:
 
 2. Scanner les images Docker pour les vulnérabilités :
    ```bash
-   ./scripts/security-scan.sh localhost:5000 v1.0.0
+   ./scripts/security-scan.sh localhost:5001 v1.0.0
    ```
 
 3. Déployer l'application avec Docker Swarm :
    ```bash
-   ./scripts/deploy-swarm.sh localhost:5000 v1.0.0
+   ./scripts/deploy-swarm.sh localhost:5001 v1.0.0
    ```
 
 4. Vérifier l'état des services :

@@ -29,7 +29,7 @@ services:
 
   # Frontend Vue.js avec Nginx
   frontend:
-    image: ${REGISTRY_URL:-localhost:5000}/frontend:${IMAGE_TAG:-latest}
+    image: ${REGISTRY_URL:-localhost:5001}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -66,7 +66,7 @@ services:
 
   # Auth Service
   auth-service:
-    image: ${REGISTRY_URL:-localhost:5000}/auth-service:${IMAGE_TAG:-latest}
+    image: ${REGISTRY_URL:-localhost:5001}/auth-service:${IMAGE_TAG:-latest}
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile
@@ -102,7 +102,7 @@ services:
 
   # Product Service
   product-service:
-    image: ${REGISTRY_URL:-localhost:5000}/product-service:${IMAGE_TAG:-latest}
+    image: ${REGISTRY_URL:-localhost:5001}/product-service:${IMAGE_TAG:-latest}
     build:
       context: ./services/product-service
       dockerfile: Dockerfile
@@ -138,7 +138,7 @@ services:
 
   # Order Service
   order-service:
-    image: ${REGISTRY_URL:-localhost:5000}/order-service:${IMAGE_TAG:-latest}
+    image: ${REGISTRY_URL:-localhost:5001}/order-service:${IMAGE_TAG:-latest}
     build:
       context: ./services/order-service
       dockerfile: Dockerfile

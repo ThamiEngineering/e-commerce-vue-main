@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-REGISTRY_URL=${1:-localhost:5000}
+REGISTRY_URL=${1:-localhost:5001}
 IMAGE_TAG=${2:-latest}
 
 echo -e "${BLUE}== Scan de sécurité des images Docker avec Trivy ==${NC}"

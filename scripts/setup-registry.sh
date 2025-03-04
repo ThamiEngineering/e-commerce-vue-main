@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-REGISTRY_PORT=${1:-5000}
+REGISTRY_PORT=${1:-5001}
 
 echo -e "${BLUE}== Configuration d'une registry Docker privée ==${NC}"
 echo -e "${YELLOW}Port de la registry: ${REGISTRY_PORT}${NC}"

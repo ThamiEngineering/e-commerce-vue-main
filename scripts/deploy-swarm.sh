@@ -11,7 +11,12 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-REGISTRY_URL=${1:-localhost:5000}
+if [[ "$(uname)" == "Darwin" ]]; then
+  HOST_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo "127.0.0.1")
+else
+  HOST_IP=$(hostname -i | awk '{print $1}')
+fi
+REGISTRY_URL=${1:-$HOST_IP:5001}
 IMAGE_TAG=${2:-latest}
 JWT_SECRET=${JWT_SECRET:-efrei_super_pass}
 MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-example}
@@ -22,7 +27,24 @@ echo -e "${YELLOW}Image Tag: ${IMAGE_TAG}${NC}"
 
 if ! docker info | grep -q "Swarm: active"; then
     echo -e "${YELLOW}Initialisation de Docker Swarm...${NC}"
-    docker swarm init --advertise-addr $(hostname -i | awk '{print $1}')
+    # si macOS
+    if [[ "$(uname)" == "Darwin" ]]; then
+      HOST_IP=$(ipconfig getifaddr en0)
+      if [ -z "$HOST_IP" ]; then
+        HOST_IP=$(ipconfig getifaddr en1)
+      fi
+
+      if [ -z "$HOST_IP" ]; then
+        echo "Impossible de détecter l'adresse IP, utilisation de 127.0.0.1"
+        HOST_IP="127.0.0.1"
+      fi
+    else
+      # Version Linux originale
+      HOST_IP=$(hostname -i | awk '{print $1}')
+    fi
+
+    echo -e "${YELLOW}Adresse IP détectée: $HOST_IP${NC}"
+    docker swarm init --advertise-addr $HOST_IP || echo -e "${YELLOW}Swarm déjà initialisé, continuation...${NC}"
     echo -e "${GREEN}Docker Swarm initialisé${NC}"
 else
     echo -e "${GREEN}Docker Swarm est déjà initialisé${NC}"
@@ -42,7 +64,7 @@ docker build -t ${REGISTRY_URL}/product-service:${IMAGE_TAG} -f services/product
 echo -e "${BLUE}Construction de l'image order-service...${NC}"
 docker build -t ${REGISTRY_URL}/order-service:${IMAGE_TAG} -f services/order-service/Dockerfile ./services/order-service
 
-if [ "$REGISTRY_URL" != "localhost:5000" ]; then
+if [ "$REGISTRY_URL" != "localhost:5001" ]; then
     echo -e "${YELLOW}Envoi des images vers le registry ${REGISTRY_URL}...${NC}"
     docker push ${REGISTRY_URL}/frontend:${IMAGE_TAG}
     docker push ${REGISTRY_URL}/auth-service:${IMAGE_TAG}
@@ -51,7 +73,7 @@ if [ "$REGISTRY_URL" != "localhost:5000" ]; then
 fi
 
 echo -e "${YELLOW}Déploiement de la stack avec Docker Swarm...${NC}"
-REGISTRY_URL=${REGISTRY_URL} IMAGE_TAG=${IMAGE_TAG} JWT_SECRET=${JWT_SECRET} MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD} \
+REGISTRY_URL="${REGISTRY_URL}" IMAGE_TAG="${IMAGE_TAG}" JWT_SECRET="${JWT_SECRET}" MONGO_ROOT_PASSWORD="${MONGO_ROOT_PASSWORD}" \
 docker stack deploy -c docker-compose.prod.yml e-commerce
 
 echo -e "${GREEN}Déploiement terminé${NC}"
